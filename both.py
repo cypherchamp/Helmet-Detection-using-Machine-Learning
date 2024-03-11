@@ -1,6 +1,7 @@
 import os
 import torch
 import cv2
+import sys
 import numpy as np
 from tracker import *
 from ultralytics import YOLO
@@ -10,7 +11,9 @@ import pandas as pd
 helmet_model = YOLO('best.pt')
 
 # Load YOLOv5 model for two-wheeler detection
-two_wheeler_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+two_wheeler_model = torch.hub.load(
+    'ultralytics/yolov5', 'yolov5s', pretrained=True)
+
 
 def POINTS(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE:
@@ -22,17 +25,19 @@ def POINTS(event, x, y, flags, param):
 #         point = [x, y]
 #         print(point)
 
+
 cv2.namedWindow('ROI')
 cv2.setMouseCallback('ROI', POINTS)
 
 # cv2.namedWindow('RGB')
 # cv2.setMouseCallback('RGB', RGB)
 
-cap = cv2.VideoCapture('video4.mp4')
+video_file = sys.argv[1]  # Video file name passed as command-line argument
+cap = cv2.VideoCapture(video_file)
 my_file = open("coco1.txt", "r")
 data = my_file.read()
 class_list = data.split("\n")
-count=0
+count = 0
 
 tracker = Tracker()
 
@@ -53,7 +58,7 @@ while True:
 
     # Two-wheeler detection
     results_two_wheeler = two_wheeler_model(frame)
-    
+
     for index, row in results_two_wheeler.pandas().xyxy[0].iterrows():
         x1 = int(row['xmin'])
         y1 = int(row['ymin'])
@@ -68,7 +73,8 @@ while True:
             x2 = min(frame.shape[1], x2 + 5)
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(frame, str(d), (x1, y1), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
+            cv2.putText(frame, str(d), (x1, y1),
+                        cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
 
             # Cropping the two-wheeler region
             cropped_vehicle = frame[y1:y2, x1:x2]
@@ -89,7 +95,8 @@ while True:
                 # Conditionally set colors based on class
                 if c_helmet == "With Helmet":
                     # Green bounding box, white text color with bold font
-                    cv2.rectangle(frame, (x1 + x1_helmet, y1 + y1_helmet), (x1 + x2_helmet, y1 + y2_helmet), (0, 255, 0), 2)
+                    cv2.rectangle(frame, (x1 + x1_helmet, y1 + y1_helmet),
+                                  (x1 + x2_helmet, y1 + y2_helmet), (0, 255, 0), 2)
                     cv2.putText(frame, f'{c_helmet}', (x1 + x1_helmet, y1 + y1_helmet),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
                 elif c_helmet == "Without Helmet":
